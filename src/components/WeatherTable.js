@@ -18,7 +18,7 @@ export default function WeatherTable({ weatherData }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const days = ['Sön', 'Mån', 'Tis', 'Ons', 'Tor', 'Fre', 'Lör'];
-    return `${days[date.getDay()]} ${date.getDate()}/${date.getMonth() + 1}`;
+    return `${days[date.getDay()]} ${date.getDate()} ${date.toLocaleDateString('sv-SE', { month: 'short' })}`;
   };
 
   return (
@@ -33,7 +33,7 @@ export default function WeatherTable({ weatherData }) {
             <Text style={[styles.cell, styles.headerCell, styles.tempCell]}>Min °C</Text>
             <Text style={[styles.cell, styles.headerCell, styles.windCell]}>Max vind m/s</Text>
             <Text style={[styles.cell, styles.headerCell, styles.precipCell]}>Regn mm</Text>
-            <Text style={[styles.cell, styles.headerCell, styles.snowCell]}>Snö cm</Text>
+            <Text style={[styles.cell, styles.headerCell, styles.snowCell]}>Snö mm</Text>
           </View>
 
           {/* Data Rows */}
@@ -69,7 +69,7 @@ export default function WeatherTable({ weatherData }) {
                   {day.precipitation?.toFixed(1) || '0.0'}
                 </Text>
                 <Text style={[styles.cell, styles.snowCell]}>
-                  {day.snowfall?.toFixed(1) || '0.0'}
+                  {(day.snowfall * 10)?.toFixed(1) || '0.0'}
                 </Text>
               </View>
             );

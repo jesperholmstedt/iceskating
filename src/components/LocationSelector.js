@@ -3,7 +3,7 @@
  * Allows users to select preset locations or use GPS
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,15 +13,67 @@ import {
   FlatList,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { PRESET_LOCATIONS } from '../data/locations';
-import { getCurrentLocation, validateCoordinates } from '../services/locationService';
+import { getCurrentLocation } from '../services/locationService';
 
 export default function LocationSelector({ selectedLocation, onLocationSelect }) {
   const [modalVisible, setModalVisible] = useState(false);
-  const [customLat, setCustomLat] = useState('');
-  const [customLon, setCustomLon] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showPresets, setShowPresets] = useState(true);
+
+  // Debounce search
+  useEffect(() => {
+    const delaySearch = setTimeout(() => {
+      if (searchQuery.length >= 3) {
+        searchLocations(searchQuery);
+      } else {
+        setSearchResults([]);
+        setShowPresets(true);
+      }
+    }, 500);
+
+    return () => clearTimeout(delaySearch);
+  }, [searchQuery]);
+
+  const searchLocations = async (query) => {
+    setIsSearching(true);
+    setShowPresets(false);
+    
+    try {
+      // Using Nominatim (OpenStreetMap) geocoding API
+      // Limiting search to Nordic countries
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?` +
+        `q=${encodeURIComponent(query)}&` +
+        `countrycodes=se,no,fi,dk,is&` + // Sweden, Norway, Finland, Denmark, Iceland
+        `format=json&` +
+        `limit=10&` +
+        `addressdetails=1`
+      );
+      
+      const data = await response.json();
+      
+      const results = data.map((item) => ({
+        id: item.place_id.toString(),
+        name: item.name || item.display_name.split(',')[0],
+        region: item.display_name,
+        latitude: parseFloat(item.lat),
+        longitude: parseFloat(item.lon),
+        country: item.address?.country || '',
+      }));
+      
+      setSearchResults(results);
+    } catch (error) {
+      console.error('Search error:', error);
+      Alert.alert('Fel', 'Kunde inte söka platser. Försök igen.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const filteredLocations = searchQuery
     ? PRESET_LOCATIONS.filter(
@@ -34,21 +86,6 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
   const handlePresetSelect = (location) => {
     onLocationSelect(location);
     setModalVisible(false);
-  };
-
-  const handleCustomLocation = () => {
-    if (validateCoordinates(customLat, customLon)) {
-      onLocationSelect({
-        name: 'Anpassad plats',
-        latitude: parseFloat(customLat),
-        longitude: parseFloat(customLon),
-      });
-      setModalVisible(false);
-      setCustomLat('');
-      setCustomLon('');
-    } else {
-      Alert.alert('Fel', 'Ogiltiga koordinater. Kontrollera dina värden.');
-    }
   };
 
   const handleGPSLocation = async () => {
@@ -85,19 +122,27 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
             {/* Search bar */}
             <TextInput
               style={styles.searchInput}
-              placeholder="Sök plats..."
+              placeholder="Sök plats i Norden (minst 3 bokstäver)..."
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
+
+            {/* Loading indicator */}
+            {isSearching && (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="small" color="#3498db" />
+                <Text style={styles.loadingText}>Söker...</Text>
+              </View>
+            )}
 
             {/* GPS Button */}
             <TouchableOpacity style={styles.gpsButton} onPress={handleGPSLocation}>
               <Text style={styles.gpsButtonText}>📍 Använd min plats (GPS)</Text>
             </TouchableOpacity>
 
-            {/* Preset locations list */}
+            {/* Search results or preset locations list */}
             <FlatList
-              data={filteredLocations}
+              data={showPresets ? filteredLocations : searchResults}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -111,31 +156,12 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
                 </TouchableOpacity>
               )}
               style={styles.locationList}
+              ListEmptyComponent={
+                !isSearching && searchQuery.length >= 3 ? (
+                  <Text style={styles.emptyText}>Inga platser hittades</Text>
+                ) : null
+              }
             />
-
-            {/* Custom coordinates */}
-            <View style={styles.customSection}>
-              <Text style={styles.customTitle}>Anpassade koordinater</Text>
-              <View style={styles.customInputs}>
-                <TextInput
-                  style={styles.coordInput}
-                  placeholder="Latitud"
-                  keyboardType="numeric"
-                  value={customLat}
-                  onChangeText={setCustomLat}
-                />
-                <TextInput
-                  style={styles.coordInput}
-                  placeholder="Longitud"
-                  keyboardType="numeric"
-                  value={customLon}
-                  onChangeText={setCustomLon}
-                />
-              </View>
-              <TouchableOpacity style={styles.customButton} onPress={handleCustomLocation}>
-                <Text style={styles.customButtonText}>Använd koordinater</Text>
-              </TouchableOpacity>
-            </View>
 
             {/* Close button */}
             <TouchableOpacity
@@ -205,6 +231,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+  },
+  loadingText: {
+    marginLeft: 8,
+    color: '#666',
+    fontSize: 14,
+  },
   locationList: {
     maxHeight: 250,
     marginBottom: 12,
@@ -224,41 +261,11 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 4,
   },
-  customSection: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-  },
-  customTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  customInputs: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  coordInput: {
-    backgroundColor: '#ffffff',
-    padding: 10,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    width: '48%',
+  emptyText: {
+    textAlign: 'center',
+    padding: 20,
+    color: '#999',
     fontSize: 14,
-  },
-  customButton: {
-    backgroundColor: '#9b59b6',
-    padding: 12,
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  customButtonText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   closeButton: {
     marginTop: 12,

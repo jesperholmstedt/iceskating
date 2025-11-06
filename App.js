@@ -34,6 +34,13 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
+  const getCurrentWeather = () => {
+    if (!weatherData?.data) return null;
+    
+    const today = new Date().toISOString().split('T')[0];
+    return weatherData.data.find(day => day.date === today);
+  };
+
   // Load last saved location on mount
   useEffect(() => {
     loadLastLocation();
@@ -97,7 +104,6 @@ export default function App() {
       <StatusBar barStyle="light-content" backgroundColor="#2c3e50" />
       
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Skridskoväder</Text>
         <Text style={styles.headerSubtitle}>
           Väderprognos för långfärdsskridskoåkning
         </Text>
@@ -123,6 +129,14 @@ export default function App() {
             <Text style={styles.coordinates}>
               {formatCoordinates(selectedLocation.latitude, selectedLocation.longitude)}
             </Text>
+            {(() => {
+              const currentWeather = getCurrentWeather();
+              return currentWeather && typeof currentWeather.tempMax === 'number' && typeof currentWeather.snowfall === 'number' && (
+                <Text style={styles.currentWeather}>
+                  ❄️ {currentWeather.tempMax.toFixed(1)}°C, 🌨️ {(currentWeather.snowfall * 10).toFixed(1)} mm
+                </Text>
+              );
+            })()}
           </View>
         )}
 
@@ -141,7 +155,7 @@ export default function App() {
 
         {!loading && !error && weatherData && (
           <>
-            <IceConditions analysis={iceAnalysis} />
+            <IceConditions analysis={iceAnalysis} weatherData={weatherData?.data} />
             <WeatherChart weatherData={weatherData.data} />
             <WeatherTable weatherData={weatherData.data} />
           </>
@@ -157,11 +171,10 @@ export default function App() {
 
         {!selectedLocation && !loading && (
           <View style={styles.welcomeContainer}>
-            <Text style={styles.welcomeEmoji}>🧊⛸️</Text>
             <Text style={styles.welcomeTitle}>Välkommen!</Text>
             <Text style={styles.welcomeText}>
               Välj en plats ovan för att se väderprognos och skridskoförhållanden
-              för långfärdsskridskoåkning i Finska Lappland och Svenska fjällkedjan.
+              för långfärdsskridskoåkning.
             </Text>
             <Text style={styles.welcomeInfo}>
               📊 Visar 5 dagar historik och 5 dagar prognos{'\n'}
@@ -176,7 +189,7 @@ export default function App() {
             Data från Open-Meteo API 🌍
           </Text>
           <Text style={styles.footerSubtext}>
-            Gratis väderdata från hela världen
+            Gjord av Jesper Holmstedt | jesperholmstedt(a)gmail.com
           </Text>
         </View>
       </ScrollView>
@@ -194,14 +207,9 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 10,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    textAlign: 'center',
-  },
+ 
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 16,
     color: '#bdc3c7',
     textAlign: 'center',
     marginTop: 4,
@@ -231,6 +239,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#95a5a6',
     marginTop: 4,
+  },
+  currentWeather: {
+    fontSize: 14,
+    color: '#3498db',
+    marginTop: 8,
+    fontWeight: '500',
   },
   loadingContainer: {
     padding: 40,

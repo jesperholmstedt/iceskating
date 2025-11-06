@@ -119,19 +119,61 @@ function parseWeatherData(rawData) {
  * @returns {Object} Ice condition analysis
  */
 export function analyzeIceConditions(weatherData) {
-  let consecutiveFreezing = 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0); // Set to start of day for accurate comparison
+  
   let maxFreezing = 0;
   let hasThawing = false;
   let totalSnowfall = 0;
+  let pastSnowfall = 0;
+  let futureSnowfall = 0;
+  let freezingDaysHistory = [];
+  let freezingDaysInLast7Days = 0;
 
-  weatherData.forEach((day) => {
-    // Check for freezing conditions (night temp below 0°C)
-    if (day.tempMin < 0) {
-      consecutiveFreezing++;
-      maxFreezing = Math.max(maxFreezing, consecutiveFreezing);
-    } else {
-      consecutiveFreezing = 0;
+  console.log('=== ICE CONDITIONS ANALYSIS ===');
+  console.log(`Analyzing ${weatherData.length} days of weather data`);
+  console.log(`Today: ${today.toISOString().split('T')[0]}`);
+
+  // Filter to only past days (including today)
+  const pastDays = weatherData.filter(day => {
+    const dayDate = new Date(day.date);
+    dayDate.setHours(0, 0, 0, 0);
+    return dayDate <= today;
+  });
+
+  console.log(`Found ${pastDays.length} past days (including today)`);
+
+  // Get last 7 days from past days
+  const last7Days = pastDays.slice(-7);
+  console.log(`Analyzing last 7 days: ${last7Days.map(d => d.date).join(', ')}`);
+
+  // Count freezing days in last 7 days
+  last7Days.forEach(day => {
+    const isFreezingDay = day.tempMax < 0;
+    if (isFreezingDay) {
+      freezingDaysInLast7Days++;
     }
+    console.log(`${day.date}: Max=${day.tempMax}°C, Freezing=${isFreezingDay}`);
+  });
+
+  console.log(`Freezing days in last 7 days: ${freezingDaysInLast7Days}`);
+
+  // Continue with full analysis for other metrics
+  weatherData.forEach((day, index) => {
+    const date = new Date(day.date);
+    const isFreezingDay = day.tempMax < 0;
+    const isPastDay = date <= today;
+
+    console.log(`${date.toISOString().split('T')[0]}: Max=${day.tempMax}°C, Min=${day.tempMin}°C, Freezing=${isFreezingDay}, Past=${isPastDay}`);
+
+    // Track freezing days for history
+    freezingDaysHistory.push({
+      date: day.date,
+      tempMax: day.tempMax,
+      tempMin: day.tempMin,
+      isFreezingDay: isFreezingDay,
+      consecutiveFreezing: 0 // Will be calculated below if needed
+    });
 
     // Check for thawing (day temp above 0°C)
     if (day.tempMax > 0) {
@@ -139,22 +181,44 @@ export function analyzeIceConditions(weatherData) {
     }
 
     // Sum up snowfall
-    totalSnowfall += day.snowfall || 0;
+    const snowfall = day.snowfall || 0;
+    totalSnowfall += snowfall;
+    
+    if (isPastDay) {
+      pastSnowfall += snowfall;
+    } else {
+      futureSnowfall += snowfall;
+    }
   });
+
+  console.log(`Total snowfall: ${totalSnowfall.toFixed(1)} cm`);
+  console.log(`Past snowfall (last 5 days): ${pastSnowfall.toFixed(1)} cm`);
+  console.log(`Future snowfall (next 5 days): ${futureSnowfall.toFixed(1)} cm`);
+  console.log(`Has thawing occurred: ${hasThawing}`);
+
+  // Show last 14 days (2 weeks) of freezing data
+  console.log('\n=== LAST 14 DAYS FREEZING HISTORY ===');
+  const last14Days = freezingDaysHistory.slice(-14);
+  last14Days.forEach(day => {
+    const date = new Date(day.date);
+    console.log(`${date.toISOString().split('T')[0]}: ${day.isFreezingDay ? 'FREEZING' : 'NOT FREEZING'} (${day.tempMax}°C max)`);
+  });
+
+  console.log('=== END ANALYSIS ===\n');
 
   // Simple ice condition assessment
   let condition = 'unknown';
   let message = '';
 
-  if (maxFreezing >= 3 && !hasThawing && totalSnowfall < 5) {
+  if (freezingDaysInLast7Days >= 5 && !hasThawing && totalSnowfall < 5) {
     condition = 'excellent';
-    message = 'Utmärkta förhållanden! Konsekvent frysning, ingen tö, lite snö.';
-  } else if (maxFreezing >= 2 && totalSnowfall < 10) {
+    message = 'Utmärkta förhållanden! Majoriteten av de senaste 7 dagarna har haft frysning, ingen tö, ingen eller lite snö.';
+  } else if (freezingDaysInLast7Days >= 3 && totalSnowfall < 10) {
     condition = 'good';
     message = 'Bra förhållanden för skridskoåkning.';
   } else if (hasThawing || totalSnowfall > 15) {
     condition = 'poor';
-    message = 'Dåliga förhållanden. Risk för tö eller mycket snö.';
+    message = 'Möjligen dåliga förhållanden.';
   } else {
     condition = 'moderate';
     message = 'Måttliga förhållanden. Kontrollera lokalt.';
@@ -163,8 +227,10 @@ export function analyzeIceConditions(weatherData) {
   return {
     condition,
     message,
-    maxConsecutiveFreezingDays: maxFreezing,
+    maxConsecutiveFreezingDays: freezingDaysInLast7Days,
     hasThawing,
     totalSnowfall,
+    pastSnowfall,
+    futureSnowfall,
   };
 }
