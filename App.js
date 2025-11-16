@@ -15,18 +15,21 @@ import {
   StatusBar,
 } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { LanguageProvider, useTranslation } from './src/i18n';
+import LanguageSelector from './src/components/LanguageSelector';
 
 // Components
 import LocationSelector from './src/components/LocationSelector';
 import WeatherChart from './src/components/WeatherChart';
 import WeatherTable from './src/components/WeatherTable';
 import IceConditions from './src/components/IceConditions';
+import NearbyFinder from './src/components/NearbyFinder';
 
 // Services
 import { fetchWeatherData, analyzeIceConditions } from './src/services/weatherService';
 import { getLastLocation, saveLastLocation, formatCoordinates } from './src/services/locationService';
 
-export default function App() {
+function InnerApp() {
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [weatherData, setWeatherData] = useState(null);
   const [iceAnalysis, setIceAnalysis] = useState(null);
@@ -34,19 +37,25 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
+  const { t } = useTranslation();
+
   const getCurrentWeather = () => {
     if (!weatherData?.data) return null;
-    
     const today = new Date().toISOString().split('T')[0];
     return weatherData.data.find(day => day.date === today);
   };
 
-  // Load last saved location on mount
   useEffect(() => {
-    loadLastLocation();
+    (async () => {
+      try {
+        const lastLoc = await getLastLocation();
+        if (lastLoc) setSelectedLocation(lastLoc);
+      } catch (err) {
+        console.error('Error loading last location:', err);
+      }
+    })();
   }, []);
 
-  // Fetch weather data when location changes
   useEffect(() => {
     if (selectedLocation) {
       loadWeatherData();
@@ -54,39 +63,23 @@ export default function App() {
     }
   }, [selectedLocation]);
 
-  const loadLastLocation = async () => {
-    try {
-      const lastLoc = await getLastLocation();
-      if (lastLoc) {
-        setSelectedLocation(lastLoc);
-      }
-    } catch (err) {
-      console.error('Error loading last location:', err);
-    }
-  };
-
   const loadWeatherData = async () => {
     if (!selectedLocation) return;
-
     setLoading(true);
     setError(null);
-
     try {
       const data = await fetchWeatherData(
         selectedLocation.latitude,
         selectedLocation.longitude,
-        5, // 5 days past
-        5  // 5 days forecast
+        7,
+        5
       );
-
       setWeatherData(data);
-
-      // Analyze ice conditions
       const analysis = analyzeIceConditions(data.data);
       setIceAnalysis(analysis);
     } catch (err) {
       console.error('Error loading weather data:', err);
-      setError('Kunde inte hämta väderdata. Försök igen senare.');
+      setError(t('errorFetch'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -102,11 +95,10 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <ExpoStatusBar style="light" />
       <StatusBar barStyle="light-content" backgroundColor="#2c3e50" />
-      
+
       <View style={styles.header}>
-        <Text style={styles.headerSubtitle}>
-          Väderprognos för långfärdsskridskoåkning
-        </Text>
+        <Text style={styles.headerSubtitle}>{t('headerSubtitle')}</Text>
+        <LanguageSelector />
       </View>
 
       <ScrollView
@@ -118,32 +110,15 @@ export default function App() {
         <LocationSelector
           selectedLocation={selectedLocation}
           onLocationSelect={setSelectedLocation}
+          currentWeather={getCurrentWeather()}
         />
 
-        {selectedLocation && (
-          <View style={styles.locationInfo}>
-            <Text style={styles.locationName}>{selectedLocation.name}</Text>
-            {selectedLocation.region && (
-              <Text style={styles.locationRegion}>{selectedLocation.region}</Text>
-            )}
-            <Text style={styles.coordinates}>
-              {formatCoordinates(selectedLocation.latitude, selectedLocation.longitude)}
-            </Text>
-            {(() => {
-              const currentWeather = getCurrentWeather();
-              return currentWeather && typeof currentWeather.tempMax === 'number' && typeof currentWeather.snowfall === 'number' && (
-                <Text style={styles.currentWeather}>
-                  ❄️ {currentWeather.tempMax.toFixed(1)}°C, 🌨️ {(currentWeather.snowfall * 10).toFixed(1)} mm
-                </Text>
-              );
-            })()}
-          </View>
-        )}
+        {/* Location info moved into LocationSelector so it appears directly under the select button */}
 
         {loading && (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#3498db" />
-            <Text style={styles.loadingText}>Hämtar väderdata...</Text>
+            <Text style={styles.loadingText}>{t('loading')}</Text>
           </View>
         )}
 
@@ -155,7 +130,7 @@ export default function App() {
 
         {!loading && !error && weatherData && (
           <>
-            <IceConditions analysis={iceAnalysis} weatherData={weatherData?.data} />
+            <IceConditions analysis={iceAnalysis} weatherData={weatherData?.data} selectedLocation={selectedLocation} />
             <WeatherChart weatherData={weatherData.data} />
             <WeatherTable weatherData={weatherData.data} />
           </>
@@ -163,31 +138,23 @@ export default function App() {
 
         {!loading && !error && !weatherData && selectedLocation && (
           <View style={styles.noDataContainer}>
-            <Text style={styles.noDataText}>
-              Dra nedåt för att hämta väderdata
-            </Text>
+            <Text style={styles.noDataText}>{t('pullToRefresh')}</Text>
           </View>
         )}
 
         {!selectedLocation && !loading && (
           <View style={styles.welcomeContainer}>
-            <Text style={styles.welcomeTitle}>Välkommen!</Text>
-            <Text style={styles.welcomeText}>
-              Välj en plats ovan för att se väderprognos och skridskoförhållanden
-              för långfärdsskridskoåkning.
-            </Text>
-            <Text style={styles.welcomeInfo}>
-              📊 Visar 5 dagar historik och 5 dagar prognos{'\n'}
-              ❄️ Analyserar isbildning och skridskoförhållanden{'\n'}
-              🌡️ Temperatur, vind, nederbörd och snöfall
-            </Text>
+            <Text style={styles.welcomeTitle}>{t('welcomeTitle')}</Text>
+            <Text style={styles.welcomeText}>{t('welcomeChoose')}</Text>
+            <Text style={styles.welcomeInfo}>{t('welcomeInfo')}</Text>
           </View>
         )}
 
+        {/* NearbyFinder moved to bottom of the page */}
+        <NearbyFinder selectedLocation={selectedLocation} />
+
         <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            Data från Open-Meteo API 🌍
-          </Text>
+          <Text style={styles.footerText}>{t('dataFrom')}</Text>
           <Text style={styles.footerSubtext}>
             Gjord av Jesper Holmstedt | jesperholmstedt(a)gmail.com
           </Text>
@@ -196,6 +163,15 @@ export default function App() {
     </SafeAreaView>
   );
 }
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <InnerApp />
+    </LanguageProvider>
+  );
+}
+
 
 const styles = StyleSheet.create({
   container: {

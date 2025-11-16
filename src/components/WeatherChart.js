@@ -5,16 +5,18 @@
 
 import React from 'react';
 import { View, StyleSheet, Dimensions, Text } from 'react-native';
+import { useTranslation } from '../i18n';
 import { LineChart } from 'react-native-chart-kit';
 import { Text as SvgText } from 'react-native-svg';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function WeatherChart({ weatherData }) {
+  const { t } = useTranslation();
   if (!weatherData || weatherData.length === 0) {
     return (
       <View style={styles.container}>
-        <Text style={styles.noData}>Ingen väderdata tillgänglig</Text>
+        <Text style={styles.noData}>{t('noData')}</Text>
       </View>
     );
   }
@@ -53,7 +55,7 @@ export default function WeatherChart({ weatherData }) {
         strokeWidth: 2,
       },
     ],
-    legend: ['Max temp (°C)', 'Min temp (°C)'],
+    legend: [t('chartLegendMax'), t('chartLegendMin')],
   };
 
   const chartConfig = {
@@ -108,10 +110,10 @@ export default function WeatherChart({ weatherData }) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Temperatur över tid</Text>
+      <Text style={styles.title}>{t('chartTitle')}</Text>
       {todayIndex !== -1 && (
         <Text style={styles.todayIndicator}>
-          Idag: {today.getDate()} November
+          {t('todayLabel')} {today.getDate()} November
         </Text>
       )}
       <View style={styles.chartContainer}>

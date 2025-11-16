@@ -5,43 +5,20 @@
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { useTranslation } from '../i18n';
+import Webcams from './Webcams';
 
-export default function IceConditions({ analysis, weatherData }) {
+export default function IceConditions({ analysis, weatherData, selectedLocation }) {
   const [showHistory, setShowHistory] = useState(false);
+  const { t } = useTranslation();
 
   if (!analysis) {
     return null;
   }
 
-  const getConditionColor = (condition) => {
-    switch (condition) {
-      case 'excellent':
-        return '#27ae60';
-      case 'good':
-        return '#3498db';
-      case 'moderate':
-        return '#f39c12';
-      case 'poor':
-        return '#e74c3c';
-      default:
-        return '#95a5a6';
-    }
-  };
+  // Ice-opportunity messaging removed per user request.
 
-  const getConditionEmoji = (condition) => {
-    switch (condition) {
-      case 'excellent':
-        return '⛸️✨';
-      case 'good':
-        return '⛸️';
-      case 'moderate':
-        return '⚠️';
-      case 'poor':
-        return '❌';
-      default:
-        return '❓';
-    }
-  };
+  // Qualitative assessment removed — UI will show factual data only
 
   // Get last 14 days of freezing history
   const getFreezingHistory = () => {
@@ -70,96 +47,44 @@ export default function IceConditions({ analysis, weatherData }) {
   const freezingHistory = getFreezingHistory();
 
   return (
-    <View style={[styles.container, { borderColor: getConditionColor(analysis.condition) }]}>
-      <View style={[styles.header, { backgroundColor: getConditionColor(analysis.condition) }]}>
-        <Text style={styles.headerText}>
-          {getConditionEmoji(analysis.condition)} Skridskoförhållanden
-        </Text>
-      </View>
-
+    <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.message}>{analysis.message}</Text>
-
         <View style={styles.details}>
           <View style={styles.detailRow}>
             <View style={styles.labelContainer}>
-              <Text style={styles.detailLabel}>❄️ Frysningsdagar senaste 7 dagarna:</Text>
-              <Text style={styles.explanation}>
-                Antal dagar inom de senaste 7 dagarna där max temperaturen varit under 0°C.
-              </Text>
+              <Text style={styles.detailLabel}>{t('freezeDaysLabel')}</Text>
+              <Text style={styles.explanation}>{t('freezeDaysExplain')}</Text>
             </View>
             <Text style={styles.detailValue}>{analysis.maxConsecutiveFreezingDays}</Text>
           </View>
-
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>🌡️ Tö förekommit:</Text>
-            <Text style={[styles.detailValue, analysis.hasThawing && styles.warning]}>
-              {analysis.hasThawing ? 'Ja' : 'Nej'}
-            </Text>
+            <View style={styles.labelContainer}>
+              <Text style={styles.detailLabel}>{t('pastSnowLabel')}</Text>
+              <Text style={styles.explanation}>{t('pastSnowExplain')}</Text>
+            </View>
+            <Text style={styles.detailValue}>{analysis.pastSnowfall.toFixed(1)} cm</Text>
           </View>
 
           <View style={styles.detailRow}>
             <View style={styles.labelContainer}>
-              <Text style={styles.detailLabel}>🌨️ Snöfall gångna 5 dagar:</Text>
-              <Text style={styles.explanation}>
-                Totalt snöfall för de senaste 5 dagarna (historiska data).
-              </Text>
+              <Text style={styles.detailLabel}>{t('futureSnowLabel')}</Text>
+              <Text style={styles.explanation}>{t('futureSnowExplain')}</Text>
             </View>
-            <Text style={styles.detailValue}>{(analysis.pastSnowfall * 10).toFixed(1)} mm</Text>
+            <Text style={styles.detailValue}>{analysis.futureSnowfall.toFixed(1)} cm</Text>
           </View>
 
           <View style={styles.detailRow}>
             <View style={styles.labelContainer}>
-              <Text style={styles.detailLabel}>🌨️ Snöfall kommande 5 dagar:</Text>
-              <Text style={styles.explanation}>
-                Förväntat snöfall för de kommande 5 dagarna (prognos).
-              </Text>
+              <Text style={styles.detailLabel}>{t('minusNoSnowLabel')}</Text>
+              <Text style={styles.explanation}>{t('minusNoSnowExplain')}</Text>
             </View>
-            <Text style={styles.detailValue}>{(analysis.futureSnowfall * 10).toFixed(1)} mm</Text>
+            <Text style={styles.detailValue}>{analysis.freezingNoSnowDays}</Text>
           </View>
+          {/* Ice opportunity message removed — user chose to reconsider. */}
         </View>
 
-        {/* History Toggle */}
-        <TouchableOpacity
-          style={styles.historyToggle}
-          onPress={() => setShowHistory(!showHistory)}
-        >
-          <Text style={styles.historyToggleText}>
-            {showHistory ? '🔽' : '▶️'} Visa senaste 14 dagarnas frysningshistorik
-          </Text>
-        </TouchableOpacity>
-
-        {/* Freezing History */}
-        {showHistory && (
-          <View style={styles.historyContainer}>
-            <Text style={styles.historyTitle}>Frysningshistorik (senaste 14 dagar):</Text>
-            <ScrollView style={styles.historyScroll}>
-              {freezingHistory.map((day, index) => {
-                const date = new Date(day.date);
-                return (
-                  <View key={index} style={styles.historyRow}>
-                    <Text style={styles.historyDate}>
-                      {date.getDate()} {date.toLocaleDateString('sv-SE', { month: 'short' })}
-                    </Text>
-                    <Text style={styles.historyTemp}>
-                      {day.tempMax.toFixed(1)}°C
-                    </Text>
-                    <View style={styles.historyStatusContainer}>
-                      <View style={[
-                        styles.historyStatusIndicator,
-                        day.isFreezingDay ? styles.freezingDay : styles.nonFreezingDay
-                      ]}>
-                      </View>
-                    </View>
-                  </View>
-                );
-              })}
-            </ScrollView>
-            <Text style={styles.historyNote}>
-              * Frysningsdag = max-temp under 0°C (senaste 7 dagarna räknas för isförhållanden)
-            </Text>
-          </View>
-        )}
+        {/* Frysningshistorik removed per request */}
+        <Webcams location={selectedLocation} />
       </View>
     </View>
   );
@@ -169,57 +94,60 @@ const styles = StyleSheet.create({
   container: {
     marginVertical: 16,
     marginHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 3,
+    borderRadius: 8,
     overflow: 'hidden',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'transparent',
   },
   header: {
-    padding: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   headerText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
+    color: '#222',
+    fontSize: 20,
+    fontWeight: '700',
     textAlign: 'center',
   },
   content: {
-    padding: 16,
+    padding: 12,
   },
   message: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 16,
+    fontSize: 15,
+    color: '#444',
+    marginBottom: 12,
     textAlign: 'center',
     fontWeight: '500',
   },
   details: {
-    marginBottom: 16,
+    marginBottom: 8,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: '#ececec',
   },
   labelContainer: {
     flex: 1,
   },
   detailLabel: {
     fontSize: 15,
-    color: '#666',
+    color: '#2f2f2f',
+    fontWeight: '600',
   },
   explanation: {
     fontSize: 12,
-    color: '#888',
+    color: '#666',
     fontStyle: 'italic',
-    marginTop: 2,
+    marginTop: 4,
   },
   detailValue: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#333',
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0b6fa4',
   },
   warning: {
     color: '#e74c3c',
@@ -309,4 +237,5 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
   },
+  
 });

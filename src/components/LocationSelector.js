@@ -16,13 +16,16 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { PRESET_LOCATIONS } from '../data/locations';
-import { getCurrentLocation } from '../services/locationService';
+import { useTranslation } from '../i18n';
+import { formatCoordinates } from '../services/locationService';
 
-export default function LocationSelector({ selectedLocation, onLocationSelect }) {
+export default function LocationSelector({ selectedLocation, onLocationSelect, currentWeather }) {
+  const { t } = useTranslation();
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
+  
   const [showPresets, setShowPresets] = useState(true);
 
   // Debounce search
@@ -69,7 +72,7 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
       setSearchResults(results);
     } catch (error) {
       console.error('Search error:', error);
-      Alert.alert('Fel', 'Kunde inte söka platser. Försök igen.');
+      Alert.alert(t('alertError'), t('alertSearchFail'));
     } finally {
       setIsSearching(false);
     }
@@ -88,26 +91,28 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
     setModalVisible(false);
   };
 
-  const handleGPSLocation = async () => {
-    try {
-      const location = await getCurrentLocation();
-      onLocationSelect(location);
-      setModalVisible(false);
-    } catch (error) {
-      Alert.alert(
-        'GPS-fel',
-        'Kunde inte hämta din plats. Kontrollera att du har gett platsbehörighet.'
-      );
-    }
-  };
+  // GPS location option removed per request
 
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.button} onPress={() => setModalVisible(true)}>
         <Text style={styles.buttonText}>
-          📍 {selectedLocation ? selectedLocation.name : 'Välj plats'}
+          📍 {t('selectLocationButton')}
         </Text>
       </TouchableOpacity>
+
+      {selectedLocation && (
+        <View style={styles.locationInfoBox}>
+          <Text style={styles.locationNameBig}>{selectedLocation.name}</Text>
+          {selectedLocation.region ? (
+            <Text style={styles.locationRegionSmall}>{selectedLocation.region}</Text>
+          ) : null}
+          <Text style={styles.coordinatesSmall}>{formatCoordinates(selectedLocation.latitude, selectedLocation.longitude)}</Text>
+          {currentWeather && typeof currentWeather.tempMax === 'number' && typeof currentWeather.snowfall === 'number' && (
+            <Text style={styles.currentWeatherSmall}>🌡️ {currentWeather.tempMax.toFixed(1)}°C, 🌨️ {currentWeather.snowfall.toFixed(1)} cm</Text>
+          )}
+        </View>
+      )}
 
       <Modal
         animationType="slide"
@@ -117,12 +122,12 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Välj plats</Text>
+            <Text style={styles.modalTitle}>{t('modalTitleSelect')}</Text>
 
             {/* Search bar */}
             <TextInput
               style={styles.searchInput}
-              placeholder="Sök plats i Norden (minst 3 bokstäver)..."
+              placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
@@ -131,14 +136,11 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
             {isSearching && (
               <View style={styles.loadingContainer}>
                 <ActivityIndicator size="small" color="#3498db" />
-                <Text style={styles.loadingText}>Söker...</Text>
+                <Text style={styles.loadingText}>{t('searching')}</Text>
               </View>
             )}
 
-            {/* GPS Button */}
-            <TouchableOpacity style={styles.gpsButton} onPress={handleGPSLocation}>
-              <Text style={styles.gpsButtonText}>📍 Använd min plats (GPS)</Text>
-            </TouchableOpacity>
+            {/* GPS Button removed per user request */}
 
             {/* Search results or preset locations list */}
             <FlatList
@@ -158,7 +160,7 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
               style={styles.locationList}
               ListEmptyComponent={
                 !isSearching && searchQuery.length >= 3 ? (
-                  <Text style={styles.emptyText}>Inga platser hittades</Text>
+                  <Text style={styles.emptyText}>{t('noLocationsFound')}</Text>
                 ) : null
               }
             />
@@ -168,7 +170,7 @@ export default function LocationSelector({ selectedLocation, onLocationSelect })
               style={styles.closeButton}
               onPress={() => setModalVisible(false)}
             >
-              <Text style={styles.closeButtonText}>Stäng</Text>
+              <Text style={styles.closeButtonText}>{t('close')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -278,5 +280,34 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  locationInfoBox: {
+    backgroundColor: '#ffffff',
+    padding: 12,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  locationNameBig: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2c3e50',
+  },
+  locationRegionSmall: {
+    fontSize: 13,
+    color: '#7f8c8d',
+    marginTop: 4,
+  },
+  coordinatesSmall: {
+    fontSize: 12,
+    color: '#95a5a6',
+    marginTop: 4,
+  },
+  currentWeatherSmall: {
+    fontSize: 14,
+    color: '#3498db',
+    marginTop: 8,
+    fontWeight: '500',
   },
 });
