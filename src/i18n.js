@@ -44,16 +44,7 @@ const translations = {
     webcamsTitle: '🔎 Webbkameror',
     webcamsSubtitle: 'Öppna sökresultat för webbkameror nära platsen.',
     webcamsButton: 'Sök webbkameror (Google)',
-  nearbyFinderTitle: 'Möjliga isplatser (inom 200 km)',
-  nearbyFinderTooltipTitle: 'Hur poängen beräknas',
-  nearbyFinderTooltipText: `Poängen bygger på historiska och prognostiserade väderdata. Vi tar hänsyn till:
-- Antal kalla dagar utan snö (senaste 5 dagarna)
-- Prognostiserade minusgrader utan nytt snöfall
-- Nyligen fallit snö (minskar poängen)
-- En säsongsjustering
-
-Varje del viktas och normaliseras till en skala 0–100 %. Detta är en beräkningsmodell baserad på väderdata; verkliga förhållanden kan skilja sig. Kontrollera alltid lokala källor som "Skridskonätet"/"Skrinnari" eller lokala skridskogrupper (t.ex. Facebook) innan du ger dig ut.`,
-  nearbyFinderReadMore: 'Läs mer om hur poängen räknas',
+  // NearbyFinder translations removed (feature deprecated)
     center: 'Centrum',
     change: 'Byt',
     radiusKm: 'Radie (km)',
@@ -110,10 +101,7 @@ Varje del viktas och normaliseras till en skala 0–100 %. Detta är en beräkni
     webcamsTitle: '🔎 Webcams',
     webcamsSubtitle: 'Open search results for webcams near the selected location.',
     webcamsButton: 'Search webcams (Google)',
-  nearbyFinderTitle: 'Potential ice spots (200 km radius)',
-  nearbyFinderTooltipTitle: 'How the score is calculated',
-  nearbyFinderTooltipText: 'The score combines historical and forecast weather signals: recent freezing days without snowfall (last 5 days), forecasted cold days without fresh snow, recent snowfall amounts (which penalise the score), plus a seasonal adjustment. Components are weighted and normalised to a 0–100% scale. This is only a formula based on weather data and real conditions may differ — always check community sources such as "Skridskonätet"/"Skrinnari" or local skating groups (e.g. Facebook) before heading out.',
-  nearbyFinderReadMore: 'Read more about how the score is calculated',
+  // NearbyFinder translations removed (feature deprecated)
     center: 'Center',
     change: 'Change',
     radiusKm: 'Radius (km)',
@@ -170,10 +158,7 @@ Varje del viktas och normaliseras till en skala 0–100 %. Detta är en beräkni
     webcamsTitle: '🔎 Web-kamerat',
     webcamsSubtitle: 'Avaa hakutulokset web-kameroista lähellä sijaintia.',
     webcamsButton: 'Etsi web-kameroita (Google)',
-  nearbyFinderTitle: 'Mahdolliset jääpaikat (200 km säde)',
-  nearbyFinderTooltipTitle: 'Miten pisteet lasketaan',
-  nearbyFinderTooltipText: 'Pisteet yhdistävät historialliset ja ennustetut säätiedot: äskettäiset pakastuspäivät ilman lumisadetta (viimeiset 5 päivää), ennustetut kylmät päivät ilman uutta lunta, äskettäinen lumisademäärä (vähentää pistettä) sekä kausitason säätö. Osa-alueet painotetaan ja normalisoidaan asteikolle 0–100%. Tämä on vain kaava, joka perustuu säätietoihin, ja todelliset olosuhteet voivat poiketa — tarkista aina paikalliset lähteet kuten "Skridskonätet"/"Skrinnari" tai paikalliset luisteluryhmät (esim. Facebook) ennen lähtöä.',
-  nearbyFinderReadMore: 'Lue lisää siitä, miten pisteet lasketaan',
+  // NearbyFinder translations removed (feature deprecated)
     center: 'Keskus',
     change: 'Vaihda',
     radiusKm: 'Säde (km)',

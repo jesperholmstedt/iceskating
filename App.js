@@ -23,7 +23,6 @@ import LocationSelector from './src/components/LocationSelector';
 import WeatherChart from './src/components/WeatherChart';
 import WeatherTable from './src/components/WeatherTable';
 import IceConditions from './src/components/IceConditions';
-import NearbyFinder from './src/components/NearbyFinder';
 
 // Services
 import { fetchWeatherData, analyzeIceConditions } from './src/services/weatherService';
@@ -150,8 +149,7 @@ function InnerApp() {
           </View>
         )}
 
-        {/* NearbyFinder moved to bottom of the page */}
-        <NearbyFinder selectedLocation={selectedLocation} />
+  {/* NearbyFinder removed */}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>{t('dataFrom')}</Text>

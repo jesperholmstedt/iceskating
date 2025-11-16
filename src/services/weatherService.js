@@ -253,11 +253,14 @@ export async function evaluateIcePotentialForLocation(latitude, longitude, optio
     pastCap: 0.6,
     perForecastColdNoSnowDay: 0.15,
     forecastCap: 0.45,
-    recentSnowDivisor: 20, // recentSnowDepth / divisor is subtracted
-    recentSnowCap: 0.7,
-    forecastSnowDivisor: 10,
-    forecastSnowCap: 0.5,
-    coldWhileSnowPenalty: 0.2,
+    // Make snowfall penalties less harsh by default so small amounts of snow
+    // don't overly reduce the ice potential score. These can still be
+    // overridden via options.weights when tuning is needed.
+    recentSnowDivisor: 40, // larger divisor -> smaller subtraction per cm
+    recentSnowCap: 0.45,   // lower cap for recent snow penalty
+    forecastSnowDivisor: 20,
+    forecastSnowCap: 0.3,
+    coldWhileSnowPenalty: 0.1,
     monthFactors: { 2: 0.85, 3: 0.85, 11: 0.95 }
   };
   const weights = { ...defaultWeights, ...(options.weights || {}) };
